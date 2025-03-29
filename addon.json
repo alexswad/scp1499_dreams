@@ -1,0 +1,16 @@
+{
+	"title"		:	"SCP-1499 - Gas Mask [DREAMS]",
+	"type"		:	"npc",
+	"tags"		:	["roleplay", "realism"],
+	"ignore"	:
+	[
+		"*.psd",
+		"*.vcproj",
+		"*.svn*",
+		"*.png",
+		".git/*",
+		"source_maps/*",
+		"LICENSE",
+		"*sw.vtx"
+	]
+}
