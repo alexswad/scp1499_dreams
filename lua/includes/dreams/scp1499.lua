@@ -6,7 +6,7 @@ if not DREAMS then
 end
 
 DREAMS.MoveSpeed = 10
-DREAMS.ShiftSpeed = 18.5
+DREAMS.ShiftSpeed = 16
 DREAMS.JumpPower = 200
 DREAMS.Gravity = 600
 
@@ -147,6 +147,9 @@ else
 		end)
 		self.Triggered = false
 		self.FadeTime = CurTime() + 2
+		timer.Simple(0.2, function()
+			ply:EmitSound("1499/music.wav", 75, 100, 0.3)
+		end)
 	end
 
 	function DREAMS:ClearNPCS()
@@ -185,9 +188,9 @@ else
 
 	function DREAMS:End(ply)
 		self:ClearNPCS()
-		RunConsoleCommand("stopsound")
-		if not ply:Alive() then return end
+		ply:StopSound("1499/music.wav")
 		timer.Simple(0.1, function()
+			if not ply:Alive() then ply:EmitSound("zombie/claw_strike1.wav", 75, 100, 0.1) return end
 			surface.PlaySound("1499/use.ogg")
 			surface.PlaySound("1499/exit.ogg")
 		end)
@@ -235,6 +238,11 @@ else
 					if (inview.y > 85 or inview.y < -85) then continue end
 					pos = sp
 					b.Timeout = CurTime() + 3
+					if not self.Triggered and (math.random(1, 2) == 2 or math.random(1, 2) == 1) then
+						v:ResetSequenceInfo()
+						v:ResetSequence("walk")
+						v.Walking = true
+					end
 					break
 				end
 				if pos then v:SetPos(pos) end
@@ -287,6 +295,7 @@ else
 						if ppos:DistToSqr(vpos) < 130 ^ 2 then
 							self:SendCommand("hit")
 							self.ViewPunch = 10
+							ply:EmitSound("zombie/claw_strike1.wav", 75, 100, 0.1)
 						end
 					end
 					v:SetCycle(v.Cycle)
@@ -315,6 +324,10 @@ else
 				break
 			end
 		end
+
+		if not self.Triggered and math.random(1, 5000) == 321 then
+			LocalPlayer():EmitSound("1499/idle" .. math.random(1, 4) .. ".ogg", 75, 100, 0.1)
+		end
 	end
 
 	function DREAMS:Alarm()
@@ -324,6 +337,7 @@ else
 		for k, v in pairs(self.NPCS) do
 			v:ResetSequence("idle_panic")
 		end
+		LocalPlayer():EmitSound("1499/triggered.ogg", 75, 100, 0.3)
 	end
 end
 
