@@ -47,6 +47,7 @@ end
 *******************************************************]]
 function SWEP:Initialize()
 	-- other initialize code goes here
+	self:SetHoldType(self.HoldType)
 	if CLIENT then
 		-- Create a new table for every weapon instance
 		self.VElements = table.FullCopy(self.VElements)
@@ -57,6 +58,7 @@ function SWEP:Initialize()
 
 		-- init view model bone build function
 		if IsValid(self.Owner) then
+			if self.Owner:GetActiveWeapon() != self then return end
 			local vm = self.Owner:GetViewModel()
 
 			if IsValid(vm) then
