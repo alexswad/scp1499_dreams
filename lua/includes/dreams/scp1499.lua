@@ -17,7 +17,7 @@ local Vector = Vector
 local Dreams = Dreams
 local CurTime = CurTime
 
-local room = DREAMS:AddRoom("1499", "models/dreams/scp1499/scp1499.mdl", "data/dreams/scp1499_phys.dat", vector_origin)
+local room = DREAMS:AddRoom("1499", "models/dreams/scp1499/scp1499.mdl", "data_static/dreams/scp1499_phys.dat", vector_origin)
 room.MdlLighting = {0.5, 0.5, 0.6}
 room.Lighting = {0.05, 0.05, 0.07}
 
