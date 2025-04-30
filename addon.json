@@ -11,6 +11,7 @@
 		".git/*",
 		"source_maps/*",
 		"LICENSE",
-		"*sw.vtx"
+		"*sw.vtx",
+		"*.vmf"
 	]
 }

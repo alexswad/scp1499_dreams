@@ -126,13 +126,14 @@ if SERVER then
 else
 	local function find_closest_node(phys, list, startpos, checkpos, last)
 		local npos
+		local hpos = startpos + Vector(0, 0, 32)
 		for k, v in pairs(list) do
 			if last and last:IsEqualTol(v.pos, 100) then continue end
 			if npos and v.pos:DistToSqr(checkpos) > npos:DistToSqr(checkpos) then continue end
 			local dir = v.pos - startpos
 			dir:SetUnpacked(dir.x, dir.y, 0)
 			dir:Normalize()
-			if Dreams.Lib.TraceRayPhys(phys, startpos, dir, v.pos:Distance(startpos)) then continue end
+			if Dreams.Lib.TraceRayPhys(phys, hpos, dir, v.pos:Distance(startpos)) then continue end
 			npos = v.pos
 		end
 		return npos
@@ -264,7 +265,11 @@ else
 					local dir = pos - vpos
 					dir:SetUnpacked(dir.x, dir.y, 0)
 					dir:Normalize()
-					local seeplayer = not Dreams.Lib.TraceRayPhys(mroom.phys, vpos + Vector(0, 0, 32), ppos - vpos, vpos:Distance(ppos) - 8)
+
+					local pdir = ppos - vpos
+					pdir:SetUnpacked(dir.x, dir.y, 0)
+					pdir:Normalize()
+					local seeplayer = not Dreams.Lib.TraceRayPhys(mroom.phys, vpos + Vector(0, 0, 32), pdir, vpos:Distance(ppos) - 8)
 					if v.Target and seeplayer then
 						v.LastTarget = v.Target
 						v.Target = nil
