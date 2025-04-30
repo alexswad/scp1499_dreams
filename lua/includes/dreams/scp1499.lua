@@ -61,7 +61,7 @@ if CLIENT then
 		render.SuppressEngineLighting(false)
 
 		-- if not ply.DreamRoom then return end
-		-- local hit, wd = Dreams.Lib.TracePhys(ply.DreamRoom.phys, ply:GetDreamPos() + Vector(0, 0, 64), ply:EyeAngles():Forward(), 100)
+		-- local hit, wd = Dreams.Lib.TraceRayPhys(ply.DreamRoom.phys, ply:GetDreamPos() + Vector(0, 0, 64), ply:EyeAngles():Forward(), 100)
 		-- if hit then
 		-- 	//wprint(hit, wd)
 		-- 	render.DrawLine(ply:GetDreamPos() + Vector(50, 0, 32), ply:GetDreamPos() + Vector(0, 0, 64) + ply:EyeAngles():Forward() * 300, Color(255, 0, 0), false)
@@ -132,7 +132,7 @@ else
 			local dir = v.pos - startpos
 			dir:SetUnpacked(dir.x, dir.y, 0)
 			dir:Normalize()
-			if Dreams.Lib.TracePhys(phys, startpos, dir, v.pos:DistToSqr(startpos)) then continue end
+			if Dreams.Lib.TraceRayPhys(phys, startpos, dir, v.pos:Distance(startpos)) then continue end
 			npos = v.pos
 		end
 		return npos
@@ -264,14 +264,14 @@ else
 					local dir = pos - vpos
 					dir:SetUnpacked(dir.x, dir.y, 0)
 					dir:Normalize()
-					local seeplayer = not Dreams.Lib.TracePhys(mroom.phys, vpos + Vector(0, 0, 32), ppos - vpos, vpos:DistToSqr(ppos) - 2)
+					local seeplayer = not Dreams.Lib.TraceRayPhys(mroom.phys, vpos + Vector(0, 0, 32), ppos - vpos, vpos:Distance(ppos) - 8)
 					if v.Target and seeplayer then
 						v.LastTarget = v.Target
 						v.Target = nil
 						continue
 					end
 
-					if not seeplayer and (Dreams.Lib.TracePhys(mroom.phys, vpos + Vector(0, 0, 32), dir, 100 ^ 2) or v.Target and v.Target:DistToSqr(vpos) < 10 ^ 2) then
+					if not seeplayer and (Dreams.Lib.TraceRayPhys(mroom.phys, vpos + Vector(0, 0, 32), dir, 100) or v.Target and v.Target:DistToSqr(vpos) < 10 ^ 2) then
 						if v.LastSearch and v.LastSearch > CurTime() then continue end
 						v.LastSearch = CurTime() + 0.5
 						if v.Target then
@@ -311,7 +311,7 @@ else
 				local lcycle = (cycle + 0.362978234 * k) % 1
 				v:SetCycle(lcycle)
 
-				local hit = Dreams.Lib.TracePhys(self.ListRooms[1].phys, vpos + Vector(0, 0, 32), v:GetAngles():Forward(), 100 ^ 2)
+				local hit = Dreams.Lib.TraceRayPhys(self.ListRooms[1].phys, vpos + Vector(0, 0, 32), v:GetAngles():Forward(), 100)
 				if hit then
 					v.Walking = false
 					v:ResetSequence("idle")
