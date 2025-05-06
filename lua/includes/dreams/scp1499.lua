@@ -8,7 +8,8 @@ end
 DREAMS.MoveSpeed = 10
 DREAMS.ShiftSpeed = 16
 DREAMS.JumpPower = 200
-DREAMS.Gravity = 600
+DREAMS.Gravity = 200
+DREAMS.Debug = 0
 
 local math_cos = math.cos
 local math_abs = math.abs
@@ -17,44 +18,66 @@ local Vector = Vector
 local Dreams = Dreams
 local CurTime = CurTime
 
-local room = DREAMS:AddRoom("1499", "models/dreams/scp1499/scp1499.mdl", "data_static/dreams/scp1499_phys.dat", vector_origin)
+local room = DREAMS:AddRoom("1499", "models/dreams/scp1499/scp1499_dimension.mdl", "data_static/dreams/scp1499_dimension.dat", vector_origin)
 room.MdlLighting = {0.5, 0.5, 0.6}
 room.Lighting = {0.05, 0.05, 0.07}
+room.mdl_origin = Vector(0, 0, 92)
 
-DREAMS.SpawnPoints = {}
-for k, v in pairs(room.Marks) do
-	if k:StartsWith("spawnpoint") then
-		table.insert(DREAMS.SpawnPoints, v)
-	end
-end
+DREAMS.SpawnPoints = room.marks.spawnpoint
+DREAMS.Targets = room.marks.info_target
+DREAMS.Church = room.marks.church
+DREAMS.Loiter = room.marks.church_loiter
+DREAMS.Trigger = room.triggers.church_trigger.phys
 
 if CLIENT then
 	function DREAMS:SetupFog()
 		render.FogMode(MATERIAL_FOG_LINEAR)
-		render.FogColor(51, 51, 51)
+		render.FogColor(72, 72, 78)
 		render.FogStart(800)
 		render.FogEnd(1200)
-		render.FogMaxDensity(0.9)
+		render.FogMaxDensity(0.90)
 		return true
 	end
 
-	local pd_skybox
+	local pd_skybox, gritmat
 	function DREAMS:Draw(ply)
 		Dreams.Meta.Draw(self, ply)
-
 		if not IsValid(pd_skybox) then
-			pd_skybox = ClientsideModelSafe("models/dreams/skybox.mdl")
+			pd_skybox = ClientsideModelSafe("models/dreams/scp1499/skybox.mdl")
 			pd_skybox:SetNoDraw(true)
-			pd_skybox:SetModelScale(-9)
-			pd_skybox:SetMaterial("models/props_wasteland/concretewall064b")
+			pd_skybox:SetModelScale(-3)
+			pd_skybox:SetAngles(Angle(180, 0, 0))
 		end
 
-		pd_skybox:SetRenderMode(RENDERMODE_TRANSCOLOR)
+		pd_skybox:SetRenderMode(RENDERMODE_WORLDGLOW)
 		pd_skybox:SetColor(Color(255, 0, 0))
 		render.SuppressEngineLighting(true)
-		render.ResetModelLighting(0, 0, 0)
+		render.ResetModelLighting(0.8, 0.8, 0.8)
+		render.OverrideDepthEnable(true, false)
 		pd_skybox:SetPos(ply:GetDreamPos() + Vector(0, 0, 64))
 		pd_skybox:DrawModel()
+		render.OverrideDepthEnable(false)
+
+		if not gritmat or not self.FixedMats then
+			gritmat = CreateMaterial("1499gritmat5", "VertexLitGeneric", {
+				["$basetexture"] = "rp_scpfoundation_v8/grit2",
+				["$model"] = 1,
+				--["$translucent"] = 1,
+				--["$vertexalpha"] = 1,
+				--["$vertexcolor"] = 1
+			})
+		end
+
+
+		local redraw
+		for k, v in ipairs(self.ListRooms[1].props) do
+			if IsValid(v.CMDL) then
+				redraw = redraw or v.CMDL:GetMaterial() ~= "!1499gritmat5"
+				if not redraw then break end
+				v.CMDL:SetMaterial("!1499gritmat5")
+			end
+		end
+		if redraw then Dreams.Meta.Draw(self, ply) end
 
 		render.ResetModelLighting(0.5, 0.5, 0.9)
 		self:UpdateNPCS(ply)
@@ -124,24 +147,8 @@ if SERVER then
 		ply:TakeDamage(20)
 	end)
 else
-	local function find_closest_node(phys, list, startpos, checkpos, last)
-		local npos
-		local hpos = startpos + Vector(0, 0, 32)
-		for k, v in pairs(list) do
-			if last and last:IsEqualTol(v.pos, 100) then continue end
-			if npos and v.pos:DistToSqr(checkpos) > npos:DistToSqr(checkpos) then continue end
-			local dir = v.pos - startpos
-			dir:SetUnpacked(dir.x, dir.y, 0)
-			dir:Normalize()
-			if Dreams.Lib.TraceRayPhys(phys, hpos, dir, v.pos:Distance(startpos)) then continue end
-			npos = v.pos
-		end
-		return npos
-	end
-
 	function DREAMS:Start(ply)
 		self:MakeNPCs()
-		RunConsoleCommand("stopsound")
 		timer.Simple(0.1, function()
 			surface.PlaySound("1499/use.ogg")
 			surface.PlaySound("1499/enter.ogg")
@@ -163,9 +170,10 @@ else
 	function DREAMS:MakeNPCs()
 		self:ClearNPCS()
 		self.NPCS = {}
-		local sps = table.Copy(self.SpawnPoints)
+		self.ChurchNPCs = {}
+		local sps = table.Copy(self.Targets)
 		local sp, k
-		for i = 1, 9 do
+		for i = 1, 12 do
 			sp, k = table.Random(sps)
 			if not sp then return end
 			sps[k] = nil
@@ -185,6 +193,15 @@ else
 			end
 			self.NPCS[i] = cs
 		end
+
+		for n, v in pairs(self.Church) do
+			local cs = ClientsideModelSafe("models/cpthazama/scp/1499-1.mdl")
+			cs:SetPos(v.pos)
+			cs:SetNoDraw(true)
+			cs:ResetSequenceInfo()
+			cs:SetAngles(v.angles)
+			self.ChurchNPCs[n] = cs
+		end
 	end
 
 	function DREAMS:End(ply)
@@ -199,16 +216,36 @@ else
 
 	DREAMS:AddNetSender("hit")
 	function DREAMS:UpdateNPCS(ply)
+		if not self.NPCS or #self.NPCS == 0 then self:MakeNPCs() end
+		local ppos = ply:GetDreamPos()
+
+		if not self.Triggered and self.Loiter.pos:DistToSqr(ppos) < 3000 ^ 2 then
+			for k, v in ipairs(self.ChurchNPCs) do
+				if not IsValid(v) then table.remove(self.ChurchNPCs, k) continue end
+				v:DrawModel()
+			end
+			if ppos:WithinAABox(self.Trigger.AA, self.Trigger.BB) then
+				self.LoiterAmt = (self.LoiterAmt or 0) + 0.1 * FrameTime()
+				if self.LoiterAmt > 1 then
+					self.NPCS = self.ChurchNPCs
+					self:Alarm()
+					return
+				end
+			end
+		else
+			self.LoiterAmt = 0
+		end
+
 		local cycle = self.Cycle or 0
-		local mroom = self.ListRooms[1]
+		local phys = self.ListRooms[1].phys
 		cycle = (cycle + 0.2 * FrameTime()) % 1
 		self.Cycle = cycle
 		for k, v in ipairs(self.NPCS or {}) do
 			if not IsValid(v) then table.remove(self.NPCS, k) continue end
-			local vpos, ppos = v:GetPos(), ply:GetDreamPos()
-			local skip = vpos:DistToSqr(ppos) > 2000 ^ 2
+			local vpos = v:GetPos()
+			local skip = vpos:DistToSqr(ppos) > 3000 ^ 2
 			if not v.DupeCheck or v.DupeCheck < CurTime() then
-				v.DupeCheck = CurTime() + 0.7 + 0.1 * k
+				v.DupeCheck = CurTime() + 1 + 0.4 * k
 
 				local inview_np = ply:EyeAngles() - (vpos - ppos):Angle()
 				inview_np:Normalize()
@@ -226,19 +263,19 @@ else
 			end
 
 			if skip and (not v.LastSkip or v.LastSkip < CurTime()) then
-				v.LastSkip = CurTime() + 0.5 + 0.1 * k
+				v.LastSkip = CurTime() + 1 + 0.2 * k
 				local pos
-				for a, b in RandomPairs(self.SpawnPoints) do
+				for a, b in ipairs(self.Targets) do
 					if b.Timeout and b.Timeout > CurTime() then continue end
 					local sp = b.pos
 					local dist = sp:DistToSqr(ppos)
-					if dist < 1200 ^ 2 or dist > 1900 ^ 2 then continue end
+					if dist < 1300 ^ 2 or dist > 3000 ^ 2 then continue end
 					local inview = ply:GetVelocity():Angle() - (sp - ppos):Angle()
 					inview:Normalize()
 
 					if (inview.y > 85 or inview.y < -85) then continue end
 					pos = sp
-					b.Timeout = CurTime() + 3
+					b.Timeout = CurTime() + 10
 					if not self.Triggered and (math.random(1, 2) == 2 or math.random(1, 2) == 1) then
 						v:ResetSequenceInfo()
 						v:ResetSequence("walk")
@@ -261,29 +298,13 @@ else
 				elseif v:GetSequence() == v:LookupSequence"run" then
 					local lcycle = (cycle + 0.362978234 * k) % 1
 					v:SetCycle(lcycle * 2)
-					local pos = v.Target or ppos
-					local dir = pos - vpos
+					local dir = ppos - vpos
 					dir:SetUnpacked(dir.x, dir.y, 0)
 					dir:Normalize()
 
-					local pdir = ppos - vpos
-					pdir:SetUnpacked(dir.x, dir.y, 0)
-					pdir:Normalize()
-					local seeplayer = not Dreams.Lib.TraceRayPhys(mroom.phys, vpos + Vector(0, 0, 32), pdir, vpos:Distance(ppos) - 8)
-					if v.Target and seeplayer then
-						v.LastTarget = v.Target
-						v.Target = nil
-						continue
-					end
-
-					if not seeplayer and (Dreams.Lib.TraceRayPhys(mroom.phys, vpos + Vector(0, 0, 32), dir, 100) or v.Target and v.Target:DistToSqr(vpos) < 10 ^ 2) then
-						if v.LastSearch and v.LastSearch > CurTime() then continue end
-						v.LastSearch = CurTime() + 0.5
-						if v.Target then
-							v.LastTarget = v.Target
-						end
-						v.Target = find_closest_node(mroom.phys, mroom.Marks, vpos + Vector(0, 0, 2), ppos, v.LastTarget)
-						continue
+					local hit = Dreams.Lib.IntersectCylPhys(phys, vpos + Vector(0, 0, 3) + dir * 32, 32, 64)
+					if hit then
+						dir = dir:Angle():Right()
 					end
 					v:SetPos(dir * math.min(140 + k * 4, 165) * FrameTime() + vpos)
 					v:SetAngles(dir:Angle())
@@ -316,7 +337,7 @@ else
 				local lcycle = (cycle + 0.362978234 * k) % 1
 				v:SetCycle(lcycle)
 
-				local hit = Dreams.Lib.TraceRayPhys(self.ListRooms[1].phys, vpos + Vector(0, 0, 32), v:GetAngles():Forward(), 100)
+				local hit = Dreams.Lib.IntersectCylPhys(phys, vpos, 32, 64)
 				if hit then
 					v.Walking = false
 					v:ResetSequence("idle")
