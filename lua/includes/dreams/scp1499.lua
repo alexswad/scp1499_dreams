@@ -40,8 +40,8 @@ if CLIENT then
 	end
 
 	local pd_skybox, gritmat
-	function DREAMS:Draw(ply)
-		Dreams.Meta.Draw(self, ply)
+	function DREAMS:Draw(ply, rt)
+		Dreams.Meta.Draw(self, ply, rt)
 		if not IsValid(pd_skybox) then
 			pd_skybox = ClientsideModelSafe("models/dreams/scp1499/skybox.mdl")
 			pd_skybox:SetNoDraw(true)
