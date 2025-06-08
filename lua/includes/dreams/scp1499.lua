@@ -149,13 +149,13 @@ if SERVER then
 else
 	function DREAMS:Start(ply)
 		self:MakeNPCs()
-		timer.Simple(0.1, function()
+		timer.Simple(0.8, function()
 			surface.PlaySound("1499/use.ogg")
 			surface.PlaySound("1499/enter.ogg")
 		end)
 		self.Triggered = false
 		self.FadeTime = CurTime() + 2
-		timer.Simple(0.2, function()
+		timer.Simple(1, function()
 			ply:EmitSound("1499/music.wav", 75, 100, 0.3)
 		end)
 	end
