@@ -1,6 +1,6 @@
 AddCSLuaFile()
 SWEP.PrintName = "SCP-1499"
-SWEP.Category = "SCP"
+SWEP.Category = "Dreams - SCP"
 SWEP.Spawnable = true
 SWEP.AdminOnly = true
 SWEP.Author = "eskill"
