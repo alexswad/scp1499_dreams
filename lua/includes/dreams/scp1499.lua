@@ -105,7 +105,7 @@ if CLIENT then
 			surface.SetTextPos(w / 2 - surface.GetTextSize("You put on the gas mask.") / 2, h - 100)
 			surface.DrawText("You put on the gas mask.")
 		end
-		Dreams.Meta.DrawHUD(self, ply)
+		Dreams.Meta.DrawHUD(self, ply, w, h)
 	end
 
 	local bob = 0
